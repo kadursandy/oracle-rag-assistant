@@ -1,0 +1,13 @@
+
+fastapi
+uvicorn
+streamlit
+openai
+psycopg2-binary
+requests
+beautifulsoup4
+langchain
+langchain-openai
+langchain-text-splitters
+pgvector
+scikit-learn
