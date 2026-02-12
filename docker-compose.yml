@@ -1,8 +1,13 @@
+version: "3.9"
 
-version: '3.8'
 services:
+
+  # -----------------------------
+  # PostgreSQL + pgvector
+  # -----------------------------
   db:
     image: ankane/pgvector
+    container_name: oracle-rag-db
     environment:
       POSTGRES_DB: ragdb
       POSTGRES_USER: postgres
@@ -10,17 +15,85 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL","pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
+      timeout: 5s
       retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
-  app:
+  # -----------------------------
+  # Ingestion Service (runs once)
+  # -----------------------------
+  ingestion:
     build: .
-    ports:
-      - "8501:8501"
-      - "8000:8000"
-    env_file:
-      - .env
+    container_name: oracle-rag-ingestion
+    command: python -m ingestion.run_ingestion
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - .env
+    restart: "no"
+
+  # -----------------------------
+  # FastAPI Backend
+  # -----------------------------
+  api:
+    build: .
+    container_name: oracle-rag-api
+    command: uvicorn api.server:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      ingestion:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+
+  # -----------------------------
+  # Streamlit Frontend
+  # -----------------------------
+  ui:
+    build: .
+    container_name: oracle-rag-ui
+    command: streamlit run app/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    env_file:
+      - .env
+
+volumes:
+  pgdata:
+
+
+#
+#version: '3.8'
+#services:
+#  db:
+#    image: ankane/pgvector
+#    environment:
+#      POSTGRES_DB: ragdb
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: password
+#    ports:
+#      - "5432:5432"
+#    healthcheck:
+#      test: ["CMD-SHELL","pg_isready -U postgres"]
+#      interval: 5s
+#      retries: 5
+#
+#  app:
+#    build: .
+#    ports:
+#      - "8501:8501"
+#      - "8000:8000"
+#    env_file:
+#      - .env
+#    depends_on:
+#      db:
+#        condition: service_healthy
