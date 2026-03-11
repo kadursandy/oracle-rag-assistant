@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OCI RAG Assistant | Oracle Cloud RAG Platform</title>
+  <meta
+    name="description"
+    content="OCI (Oracle Cloud Infrastructure) RAG Assistant – an enterprise-grade agentic Retrieval-Augmented Generation platform using FastAPI, PostgreSQL (pgvector), and Docker."
+  />
+  <style>
+    :root {
+      --bg: #050816;
+      --bg-alt: #0b1022;
+      --card: #111827;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.18);
+      --accent-strong: rgba(56, 189, 248, 0.4);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border-subtle: rgba(148, 163, 184, 0.3);
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #0f172a 0, #020617 40%, #020617 100%);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 20px 56px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(120deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.4));
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    .hero {
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.18), transparent 56%),
+        linear-gradient(145deg, rgba(15, 23, 42, 0.97), rgba(2, 6, 23, 0.96));
+      padding: 26px 24px 26px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.1fr);
+      gap: 20px;
+      box-shadow:
+        0 32px 100px rgba(15, 23, 42, 0.85),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+    }
+
+    @media (max-width: 880px) {
+      .hero {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 22px 18px 22px;
+      }
+    }
+
+    .hero-title {
+      font-size: clamp(26px, 4vw, 32px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin: 4px 0 6px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-title span.accent {
+      background: linear-gradient(120deg, #38bdf8, #a855f7);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .hero-subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+      max-width: 520px;
+    }
+
+    .hero-bullets {
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 4px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .hero-bullets li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hero-bullets li::before {
+      content: "◆";
+      font-size: 9px;
+      color: var(--accent);
+    }
+
+    .hero-actions {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 14px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: background 0.16s ease, transform 0.12s ease, box-shadow 0.16s ease,
+        border-color 0.16s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(120deg, #38bdf8, #22c55e);
+      color: #020617;
+      box-shadow: 0 12px 32px rgba(56, 189, 248, 0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 40px rgba(56, 189, 248, 0.5);
+      text-decoration: none;
+    }
+
+    .btn-ghost {
+      background: rgba(15, 23, 42, 0.8);
+      border-color: rgba(148, 163, 184, 0.4);
+      color: var(--muted);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(15, 23, 42, 0.95);
+      border-color: rgba(148, 163, 184, 0.9);
+      text-decoration: none;
+    }
+
+    .btn-kbd {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .hero-right {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      min-height: 200px;
+    }
+
+    .glass-panel {
+      position: relative;
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background:
+        linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.6)),
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.25), transparent 55%);
+      padding: 12px 14px 10px;
+      overflow: hidden;
+      box-shadow:
+        0 18px 50px rgba(15, 23, 42, 0.95),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .panel-dots {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .panel-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.7);
+    }
+
+    .panel-dot:nth-child(1) { background: #f97316; }
+    .panel-dot:nth-child(2) { background: #22c55e; }
+    .panel-dot:nth-child(3) { background: #38bdf8; }
+
+    .panel-body {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      max-height: 250px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .panel-line {
+      display: flex;
+      gap: 10px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .panel-line strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .panel-line-label {
+      min-width: 44px;
+      opacity: 0.85;
+    }
+
+    .panel-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .panel-tag-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .panel-fade {
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 60px;
+      background: linear-gradient(to bottom, transparent, rgba(15, 23, 42, 0.98));
+      pointer-events: none;
+    }
+
+    .grid {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    @media (max-width: 880px) {
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.06), transparent 55%),
+        rgba(15, 23, 42, 0.96);
+      padding: 14px 14px 13px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .card h3 {
+      margin: 0 0 4px;
+      font-size: 14px;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 7px;
+    }
+
+    .pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .section {
+      margin-top: 34px;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.05), transparent 55%),
+        rgba(15, 23, 42, 0.96);
+      padding: 16px 16px 14px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-title-emoji {
+      font-size: 16px;
+    }
+
+    .section-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .section-content {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 720px) {
+      .columns {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .list {
+      padding-left: 16px;
+      margin: 6px 0 0;
+    }
+
+    .list li + li {
+      margin-top: 3px;
+    }
+
+    .tagline {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+    }
+
+    footer {
+      margin-top: 28px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(31, 41, 55, 0.9);
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    footer a {
+      font-size: 12px;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <div class="badge">
+          <span class="badge-dot"></span>
+          <span>Enterprise RAG · Oracle Cloud</span>
+        </div>
+      </div>
+      <div class="tagline">FastAPI · PostgreSQL · pgvector · Docker</div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <h1 class="hero-title">
+          <span>OCI</span>
+          <span class="accent">RAG Assistant</span>
+        </h1>
+        <p class="hero-subtitle">
+          Enterprise-grade agentic Retrieval-Augmented Generation platform that
+          scrapes Oracle Cloud Infrastructure documentation, builds vector indexes in
+          PostgreSQL (pgvector), and delivers grounded, context-aware answers via LLM.
+        </p>
+        <ul class="hero-bullets">
+          <li>End-to-end RAG pipeline: scraping → embeddings → vector search → LLM</li>
+          <li>FastAPI backend with `/chat` and `/chat-stream` APIs</li>
+          <li>Session-based conversation memory and streaming responses</li>
+          <li>Fully containerized with Docker & docker-compose</li>
+        </ul>
+        <div class="hero-actions">
+          <a href="README.md" class="btn btn-primary">
+            View Project README
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a href="chat-response.md" class="btn btn-ghost">
+            Sample Conversation
+            <span aria-hidden="true">💬</span>
+          </a>
+          <span class="btn-kbd">docker-compose up --build</span>
+        </div>
+      </div>
+
+      <div class="hero-right" aria-hidden="true">
+        <div class="glass-panel">
+          <div class="panel-header">
+            <div class="panel-dots">
+              <span class="panel-dot"></span>
+              <span class="panel-dot"></span>
+              <span class="panel-dot"></span>
+            </div>
+            <span>RAG Pipeline · Live trace</span>
+          </div>
+          <div class="panel-body">
+            <div class="panel-line">
+              <span class="panel-line-label">[1/6]</span>
+              <span>Scraping <strong>OCI docs</strong> from <code>docs.oracle.com</code> (depth ≤ 3)…</span>
+            </div>
+            <div class="panel-line">
+              <span class="panel-line-label">[2/6]</span>
+              <span>Chunking content into ~<strong>800-token</strong> windows (150-token overlap)…</span>
+            </div>
+            <div class="panel-line">
+              <span class="panel-line-label">[3/6]</span>
+              <span>Generating <strong>1536-dim embeddings</strong> for each chunk…</span>
+            </div>
+            <div class="panel-line">
+              <span class="panel-line-label">[4/6]</span>
+              <span>Persisting vectors to <strong>PostgreSQL + pgvector</strong> (cosine similarity)…</span>
+            </div>
+            <div class="panel-line">
+              <span class="panel-line-label">[5/6]</span>
+              <span>Running <strong>semantic search</strong> over top‑K relevant chunks…</span>
+            </div>
+            <div class="panel-line">
+              <span class="panel-line-label">[6/6]</span>
+              <span>Assembling context → streaming grounded answer via <strong>FastAPI</strong>…</span>
+            </div>
+            <div class="panel-tag">
+              <span class="panel-tag-dot"></span>
+              <span>Agentic RAG engine online</span>
+            </div>
+            <div class="panel-fade"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="Key features">
+      <article class="card">
+        <h3>Agentic RAG Engine</h3>
+        <p>
+          Robust retrieval pipeline with question embeddings, vector similarity search,
+          context assembly, and grounded LLM generation tailored to Oracle Cloud
+          Infrastructure docs.
+        </p>
+        <div class="pill-row">
+          <span class="pill">Question → Embedding → Context</span>
+          <span class="pill">Cosine similarity</span>
+          <span class="pill">LLM grounding</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3>Production-Ready APIs</h3>
+        <p>
+          FastAPI backend exposing synchronous and streaming chat endpoints for easy
+          integration with UIs, services, or other tooling.
+        </p>
+        <div class="pill-row">
+          <span class="pill"><code>/chat</code> · JSON</span>
+          <span class="pill"><code>/chat-stream</code> · SSE</span>
+          <span class="pill">Retry &amp; resilience</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h3>Vector Database &amp; Memory</h3>
+        <p>
+          PostgreSQL with pgvector for 1536‑dimensional embeddings, plus
+          session-scoped conversation memory stored alongside chat history.
+        </p>
+        <div class="pill-row">
+          <span class="pill">PostgreSQL + pgvector</span>
+          <span class="pill">Session memory</span>
+          <span class="pill">Token-efficient chunks</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="section" id="architecture">
+      <div class="section-header">
+        <div>
+          <div class="section-title">
+            <span class="section-title-emoji">🏗</span>
+            <span>Architecture Overview</span>
+          </div>
+          <p class="section-subtitle">
+            From Streamlit UI to FastAPI and pgvector-backed RAG.
+          </p>
+        </div>
+      </div>
+      <div class="section-content">
+        <div class="columns">
+          <div>
+            <strong>High-level flow</strong>
+            <ul class="list">
+              <li>Streamlit UI for interactive chat experience.</li>
+              <li>FastAPI backend exposes `/chat` and `/chat-stream` endpoints.</li>
+              <li>Agentic RAG engine performs retrieval and context building.</li>
+              <li>Embedding model outputs 1536‑dimensional vectors.</li>
+              <li>PostgreSQL + pgvector stores and searches embeddings.</li>
+              <li>LLM generates grounded, context‑aware responses.</li>
+            </ul>
+          </div>
+          <div>
+            <strong>Tech stack</strong>
+            <ul class="list">
+              <li>Python 3.11, FastAPI, Streamlit</li>
+              <li>PostgreSQL &amp; pgvector for similarity search</li>
+              <li>OpenAI API &amp; LangChain for LLM + orchestration</li>
+              <li>Docker &amp; docker-compose for reproducible deployment</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sample-chat">
+      <div class="section-header">
+        <div>
+          <div class="section-title">
+            <span class="section-title-emoji">💬</span>
+            <span>Sample Conversation Highlights</span>
+          </div>
+          <p class="section-subtitle">
+            Excerpts summarised from <code>chat-response.md</code>.
+          </p>
+        </div>
+        <a href="chat-response.md">Open full chat log ↗</a>
+      </div>
+      <div class="section-content">
+        <div class="columns">
+          <div>
+            <strong>What the assistant can answer</strong>
+            <ul class="list">
+              <li>List major OCI service categories (compute, storage, networking, DB, AI, security, and more).</li>
+              <li>Suggest basic and read‑only IAM policies for cross‑tenancy access.</li>
+              <li>Explain how to configure API keys and related environment variables.</li>
+            </ul>
+          </div>
+          <div>
+            <strong>Deeper OCI &amp; SDK topics</strong>
+            <ul class="list">
+              <li>Summarize AIDP (Autonomous Identity Database Provisioning) and AI Data Platform concepts.</li>
+              <li>Show Go SDK snippets for using Resource Principals and Workload Identity.</li>
+              <li>Demonstrate how RAG retrieves, grounds, and structures responses from docs.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="getting-started">
+      <div class="section-header">
+        <div>
+          <div class="section-title">
+            <span class="section-title-emoji">🚀</span>
+            <span>Getting Started Locally</span>
+          </div>
+          <p class="section-subtitle">
+            Minimal steps extracted from the project README.
+          </p>
+        </div>
+        <a href="README.md">Full setup guide ↗</a>
+      </div>
+      <div class="section-content">
+        <ol class="list">
+          <li>
+            <strong>Create your <code>.env</code> file</strong> with at least:
+            <br />
+            <code>OPENAI_API_KEY=your_api_key_here</code>
+          </li>
+          <li>
+            <strong>Start the Dockerized stack</strong>:
+            <br />
+            <code>docker-compose up --build</code>
+          </li>
+          <li>
+            <strong>Ingest Oracle documentation</strong> into the vector store:
+            <br />
+            <code>docker exec -it oracle-rag-assistant-v12-app-1 python -m ingestion.run_ingestion</code>
+          </li>
+          <li>
+            <strong>Access the application</strong>:
+            <br />
+            Streamlit UI: <code>http://localhost:8501</code><br />
+            FastAPI docs: <code>http://localhost:8000/docs</code>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <footer>
+      <div>
+        Built by <strong>Sandeep R</strong> · Enterprise RAG engineering on Oracle Cloud.
+      </div>
+      <div class="footer-links">
+        <a href="README.md">Project README</a>
+        <span>·</span>
+        <a href="chat-response.md">Sample chat transcript</a>
+      </div>
+    </footer>
+  </main>
+</body>
+</html>
